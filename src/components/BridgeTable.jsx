@@ -7,7 +7,7 @@ import dealCard from "../utils/dealCard";
 import generateDeck, { RANKS } from "../utils/generateDeck";
 import shuffleCard from "../utils/shuffleCard";
 
-const BridgeTable = ({ tableId }) => {
+const BridgeTable = ({ table }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [history, setHistory] = useState([]);
   const [trick, setTrick] = useState([]);
@@ -66,9 +66,15 @@ const BridgeTable = ({ tableId }) => {
     <div className="max-w-7xl w-full">
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-          Table: {tableId}
+          Table: {table}
         </h1>
         <div className="flex items-center gap-2">
+          <button className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600">
+            Result
+          </button>
+          <button className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600">
+            Bid
+          </button>
           <button
             onClick={reshuffle}
             className="px-3 py-2 rounded-lg bg-emerald-500 text-white font-medium shadow hover:bg-emerald-600"
@@ -126,7 +132,9 @@ const BridgeTable = ({ tableId }) => {
               </div>
             </div>
             <div className="relative bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 w-full flex flex-col items-center h-44">
-              <div className="mb-2 text-xs opacity-60">Table</div>
+              <div className="mb-2 text-xs opacity-60 text-slate-600 dark:text-slate-300">
+                Table
+              </div>
               <div className="grid grid-cols-3 gap-4 place-items-center">
                 <AnimatePresence>
                   {trick.map((t) => (

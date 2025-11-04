@@ -11,18 +11,6 @@ const PlayerArea = ({
   setCurrentPlayer,
   trick, // Add trick to props
 }) => {
-  //   function playCard(playerIndex, cardIndex) {
-
-  //     if (playerIndex !== currentPlayer) return;
-  //     setHands((prev) => {
-  //       const next = prev.map((h) => h.slice());
-  //       const [played] = next[playerIndex].splice(cardIndex, 1);
-  //       setTrick((t) => [...t, { player: playerIndex, card: played }]);
-  //       setCurrentPlayer((p) => (p + 1) % 4);
-  //       return next;
-  //     });
-  //   }
-
   function playCard(playerIndex, cardIndex, e) {
     // Must be a real user click
     if (!e?.nativeEvent?.isTrusted) return;
@@ -37,10 +25,14 @@ const PlayerArea = ({
     // For first play in a new trick, any player who won last trick can play
     const isFirstPlayInTrick = trick.length === 0;
     if (!isFirstPlayInTrick) {
-      // After first play, must follow correct sequence
-      const expectedPlayer = trick.length % 4;
+      // After first play, sequence should follow from the first player
+      const firstPlayerInTrick = trick[0].player; // Who played first in this trick
+      // Calculate next player based on who played first
+      const expectedPlayer = (firstPlayerInTrick + trick.length) % 4;
       if (playerIndex !== expectedPlayer) {
-        console.log("Not your turn in the sequence");
+        console.log(
+          `Expected player ${players[expectedPlayer].name} but got ${players[playerIndex].name}`
+        );
         return;
       }
     }
@@ -71,7 +63,7 @@ const PlayerArea = ({
         isActive ? "ring-2 ring-emerald-400 rounded-lg p-1" : ""
       }`}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-slate-300">
         <div className="rounded-full bg-slate-700/10 dark:bg-slate-600/40 px-3 py-1 text-sm font-medium shadow-sm">
           {players[playerIdx].name}
         </div>
@@ -80,12 +72,19 @@ const PlayerArea = ({
       <div className="flex gap-2 items-center flex-wrap">
         {hand.map((c, i) => {
           const isFirstPlayInTrick = trick.length === 0;
-          const expectedPlayer = isFirstPlayInTrick
-            ? currentPlayer
-            : trick.length % 4;
+          let expectedPlayer;
+
+          if (isFirstPlayInTrick) {
+            // If it's the first play, currentPlayer (last trick's winner) goes first
+            expectedPlayer = currentPlayer;
+          } else {
+            // Otherwise, calculate next player based on who played first this trick
+            const firstPlayerInTrick = trick[0].player;
+            expectedPlayer = (firstPlayerInTrick + trick.length) % 4;
+          }
+
           const isMyTurn =
-            playerIdx === currentPlayer &&
-            (isFirstPlayInTrick || playerIdx === expectedPlayer);
+            playerIdx === currentPlayer && playerIdx === expectedPlayer;
           const isPlayable = isMyTurn;
 
           return (
