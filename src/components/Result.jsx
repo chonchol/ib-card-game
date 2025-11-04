@@ -1,6 +1,8 @@
-const Result = () => {
+const Result = ({ addPosition }) => {
   return (
-    <div className="bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 w-1/2 flex flex-col items-center h-44 text-slate-600 dark:text-slate-300">
+    <div
+      className={`bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 flex flex-col items-center h-44 text-slate-600 dark:text-slate-300 ${addPosition}`}
+    >
       <div className="w-full mb-2 text-xs opacity-60">
         <table className="table-auto w-full text-left">
           <thead>

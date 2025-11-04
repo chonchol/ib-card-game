@@ -1,7 +1,9 @@
 import { AnimatePresence } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import Bidding from "../components/Bidding";
 import PlayerArea from "../components/PlayerArea";
+import Result from "../components/Result";
 import SingleCard from "../components/SingleCard";
 import dealCard from "../utils/dealCard";
 import generateDeck, { RANKS } from "../utils/generateDeck";
@@ -14,6 +16,8 @@ const BridgeTable = ({ table }) => {
   const [deck, setDeck] = useState(() => shuffleCard(generateDeck()));
   const [hands, setHands] = useState(() => dealCard(deck));
   const [currentPlayer, setCurrentPlayer] = useState(0);
+  const [showResultCard, setShowResultCard] = useState(false);
+  const [showBiddingCard, setShowBiddingCard] = useState(false);
 
   const players = useMemo(
     () => [
@@ -59,6 +63,14 @@ const BridgeTable = ({ table }) => {
     setCurrentPlayer(0);
   }
 
+  function handleResultCard() {
+    setShowResultCard((prev) => !prev);
+  }
+
+  function handleBiddingCard() {
+    setShowBiddingCard((prev) => !prev);
+  }
+
   console.log({ hands, trick, history });
 
   return (
@@ -69,10 +81,16 @@ const BridgeTable = ({ table }) => {
           Table: {table}
         </h1>
         <div className="flex items-center gap-2">
-          <button className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600">
+          <button
+            className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600"
+            onClick={() => handleResultCard()}
+          >
             Result
           </button>
-          <button className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600">
+          <button
+            className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600"
+            onClick={() => handleBiddingCard()}
+          >
             Bid
           </button>
           <button
@@ -135,6 +153,9 @@ const BridgeTable = ({ table }) => {
               <div className="mb-2 text-xs opacity-60 text-slate-600 dark:text-slate-300">
                 Table
               </div>
+              {showResultCard && <Result addPosition="absolute top-0" />}
+              {showBiddingCard && <Bidding addPosition="absolute top-0" />}
+
               <div className="grid grid-cols-3 gap-4 place-items-center">
                 <AnimatePresence>
                   {trick.map((t) => (
