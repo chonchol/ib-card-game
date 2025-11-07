@@ -1,7 +1,8 @@
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 
 const SingleCard = ({ card, onClick, small }) => {
-  console.log(card);
+  // console.log(card);
   const color =
     card?.suit === "hearts" || card?.suit === "diamonds"
       ? "text-red-500"

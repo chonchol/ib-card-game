@@ -22,6 +22,23 @@ const PlayerArea = ({
     const cardToPlay = hands[playerIndex][cardIndex];
     if (!cardToPlay) return; // Card must exist
 
+    // Enforce follow-suit: if the trick has a leading suit, and the player
+    // has at least one card of that suit, they must play that suit.
+    if (trick.length > 0) {
+      const leadingSuit = trick[0].card?.suit;
+      if (leadingSuit) {
+        const playerHand = hands[playerIndex] || [];
+        const hasLeadingSuit = playerHand.some((c) => c.suit === leadingSuit);
+        if (hasLeadingSuit && cardToPlay.suit !== leadingSuit) {
+          // Illegal play: player must follow suit
+          console.log(
+            `Player ${playerIndex} must follow suit ${leadingSuit} but tried to play ${cardToPlay.suit}`
+          );
+          return;
+        }
+      }
+    }
+
     // For first play in a new trick, any player who won last trick can play
     const isFirstPlayInTrick = trick.length === 0;
     if (!isFirstPlayInTrick) {
@@ -85,7 +102,22 @@ const PlayerArea = ({
 
           const isMyTurn =
             playerIdx === currentPlayer && playerIdx === expectedPlayer;
-          const isPlayable = isMyTurn;
+          // Determine if this specific card is playable.
+          // If it's not the first play, and there's a leading suit, and
+          // the player has cards of that suit, they may only play cards
+          // of that suit. Otherwise any card is allowed when it's their turn.
+          let isPlayable = isMyTurn;
+          if (isPlayable && !isFirstPlayInTrick && trick[0]?.card) {
+            const leadingSuit = trick[0].card.suit;
+            if (leadingSuit) {
+              const hasLeadingSuit = hand.some(
+                (card) => card.suit === leadingSuit
+              );
+              if (hasLeadingSuit && c.suit !== leadingSuit) {
+                isPlayable = false;
+              }
+            }
+          }
 
           return (
             <SingleCard
