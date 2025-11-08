@@ -18,6 +18,28 @@ const BridgeTable = ({ table }) => {
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [showResultCard, setShowResultCard] = useState(false);
   const [showBiddingCard, setShowBiddingCard] = useState(false);
+  // Bidding state
+  const [bids, setBids] = useState([]); // history of bids (including passes)
+  const [biddingTurn, setBiddingTurn] = useState(null);
+  const [highestBid, setHighestBid] = useState(null); // { player, level, suit, suitRank }
+  const [passesInRow, setPassesInRow] = useState(0);
+  const [trump, setTrump] = useState(null);
+  const [contractLevel, setContractLevel] = useState(null);
+
+  const SUIT_RANK = {
+    clubs: 1,
+    diamonds: 2,
+    hearts: 3,
+    spades: 4,
+    "no trump": 5,
+  };
+  const SUIT_POINTS = {
+    clubs: 6,
+    diamonds: 7,
+    hearts: 8,
+    spades: 9,
+    "no trump": 10,
+  };
 
   const players = useMemo(
     () => [
@@ -38,21 +60,45 @@ const BridgeTable = ({ table }) => {
     if (trick.length === 4) {
       const leadSuit = trick[0].card.suit;
       const rankIndex = (r) => RANKS.indexOf(r);
-      let best = { idx: 0, rank: -1 };
-      trick.forEach((t, i) => {
-        if (t.card.suit === leadSuit) {
-          const ri = rankIndex(t.card.rank);
-          if (ri < best.rank || best.rank === -1) best = { idx: i, rank: ri };
+
+      // If trump is set and any trump card was played, the highest trump wins
+      let winner;
+      if (trump) {
+        const trumpsPlayed = trick
+          .map((t, i) => ({ ...t, idx: i }))
+          .filter((t) => t.card.suit === trump);
+        if (trumpsPlayed.length > 0) {
+          let best = {
+            idx: trumpsPlayed[0].idx,
+            rank: rankIndex(trumpsPlayed[0].card.rank),
+          };
+          trumpsPlayed.forEach((t) => {
+            const ri = rankIndex(t.card.rank);
+            if (ri < best.rank) best = { idx: t.idx, rank: ri };
+          });
+          winner = trick[best.idx].player;
         }
-      });
-      const winner = trick[best.idx].player;
+      }
+
+      // Otherwise highest of the lead suit wins
+      if (!winner) {
+        let best = { idx: 0, rank: -1 };
+        trick.forEach((t, i) => {
+          if (t.card.suit === leadSuit) {
+            const ri = rankIndex(t.card.rank);
+            if (ri < best.rank || best.rank === -1) best = { idx: i, rank: ri };
+          }
+        });
+        winner = trick[best.idx].player;
+      }
+
       setTimeout(() => {
         setHistory((h) => [...h, { winner, trick: trick.slice() }]);
         setTrick([]);
         setCurrentPlayer(winner);
       }, 800);
     }
-  }, [trick]);
+  }, [trick, trump]);
 
   function reshuffle() {
     const d = shuffleCard(generateDeck());
@@ -67,8 +113,86 @@ const BridgeTable = ({ table }) => {
     setShowResultCard((prev) => !prev);
   }
 
-  function handleBiddingCard() {
-    setShowBiddingCard((prev) => !prev);
+  function startBidding() {
+    // open bidding UI and initialize bidding state
+    setShowBiddingCard(true);
+    setBids([]);
+    setHighestBid(null);
+    setPassesInRow(0);
+    setBiddingTurn(currentPlayer); // start bidding from current player (dealer)
+    setTrump(null);
+    setContractLevel(null);
+  }
+
+  function closeBidding() {
+    setShowBiddingCard(false);
+    setBiddingTurn(null);
+  }
+
+  function advanceBiddingTurn() {
+    setBiddingTurn((t) => (t === null ? 0 : (t + 1) % 4));
+  }
+
+  function placeBid(level, suit) {
+    if (biddingTurn === null) return;
+    const suitKey = suit.toLowerCase();
+    const bid = {
+      player: biddingTurn,
+      level,
+      suit: suitKey,
+      suitRank: SUIT_RANK[suitKey],
+    };
+
+    // Only accept bid if it's higher than current highest
+    let accepted = false;
+    if (!highestBid) accepted = true;
+    else if (level > highestBid.level) accepted = true;
+    else if (level === highestBid.level && bid.suitRank > highestBid.suitRank)
+      accepted = true;
+
+    if (!accepted) {
+      // ignore bids that are not higher
+      console.log("Bid not high enough", bid, highestBid);
+      // still advance turn and record as an invalid attempt? We'll just ignore recording.
+      advanceBiddingTurn();
+      return;
+    }
+
+    setBids((prev) => [...prev, bid]);
+    setHighestBid(bid);
+    setPassesInRow(0);
+
+    // advance to next player
+    advanceBiddingTurn();
+  }
+
+  function passBid() {
+    if (biddingTurn === null) return;
+    setBids((prev) => [...prev, { player: biddingTurn, pass: true }]);
+    setPassesInRow((p) => p + 1);
+
+    // Check end conditions after this pass
+    const nextPasses = passesInRow + 1;
+
+    // If no one has bid and everyone passes (4 passes) -> bidding ends with no contract
+    if (!highestBid && nextPasses >= 4) {
+      // all passed
+      closeBidding();
+      return;
+    }
+
+    // If there is a highest bid and three consecutive passes after it -> bidding ends
+    if (highestBid && nextPasses >= 3) {
+      // bidding won by highestBid.player
+      setTrump(highestBid.suit);
+      setContractLevel(highestBid.level);
+      setCurrentPlayer(highestBid.player); // winner starts first trick
+      // close bidding UI
+      closeBidding();
+      return;
+    }
+
+    advanceBiddingTurn();
   }
 
   console.log({ hands, trick, history });
@@ -89,7 +213,7 @@ const BridgeTable = ({ table }) => {
           </button>
           <button
             className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600"
-            onClick={() => handleBiddingCard()}
+            onClick={() => startBidding()}
           >
             Bid
           </button>
@@ -154,7 +278,27 @@ const BridgeTable = ({ table }) => {
                 Table
               </div>
               {showResultCard && <Result addPosition="absolute top-0" />}
-              {showBiddingCard && <Bidding addPosition="absolute top-0" />}
+              {showBiddingCard && (
+                <Bidding
+                  addPosition="absolute top-0"
+                  biddingTurn={biddingTurn}
+                  players={players}
+                  highestBid={highestBid}
+                  bids={bids}
+                  onBid={(level, suit) => placeBid(level, suit)}
+                  onPass={() => passBid()}
+                  onClose={() => closeBidding()}
+                />
+              )}
+
+              {contractLevel && trump && highestBid && (
+                <div className="mb-2 text-sm text-slate-700 dark:text-slate-200">
+                  <strong>Contract:</strong> {contractLevel}{" "}
+                  {trump.replace(/\b\w/g, (c) => c.toUpperCase())} —{" "}
+                  <strong>Declarer:</strong>{" "}
+                  {players[highestBid.player]?.name ?? "-"}
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-4 place-items-center">
                 <AnimatePresence>

@@ -1,37 +1,113 @@
+import { useMemo, useState } from "react";
 import Button from "./ui/Button";
 
-const Bidding = ({ addPosition }) => {
+const SUITS = ["clubs", "diamonds", "hearts", "spades", "no trump"];
+
+const Bidding = ({
+  addPosition,
+  biddingTurn,
+  players = [],
+  highestBid,
+  bids = [],
+  onBid,
+  onPass,
+  onClose,
+}) => {
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedSuit, setSelectedSuit] = useState(null);
+
+  const currentPlayerName =
+    biddingTurn !== null ? players[biddingTurn]?.name : "-";
+
+  const canBid = useMemo(() => biddingTurn !== null, [biddingTurn]);
+
+  function handlePlaceBid() {
+    if (!canBid) return;
+    if (!selectedLevel || !selectedSuit) return;
+    onBid && onBid(selectedLevel, selectedSuit);
+    setSelectedLevel(null);
+    setSelectedSuit(null);
+  }
+
+  function handlePass() {
+    if (!canBid) return;
+    onPass && onPass();
+  }
+
   return (
     <div
       className={`bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 flex flex-col items-center h-44 text-slate-600 dark:text-slate-300 ${addPosition}`}
     >
       <div className="w-full mb-2 text-xs opacity-60">
         <div className="flex justify-between">
-          <Button>1</Button>
-          <Button>2</Button>
-          <Button>3</Button>
-          <Button>4</Button>
-          <Button>5</Button>
-          <Button>6</Button>
-          <Button>7</Button>
+          {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+            <Button
+              key={n}
+              onClick={() => setSelectedLevel(n)}
+              className={selectedLevel === n ? "bg-blue-500 text-white" : ""}
+            >
+              {n}
+            </Button>
+          ))}
         </div>
         <div className="flex justify-between my-4">
-          <Button>Clubs</Button>
-          <Button>Diamonds</Button>
-          <Button>Hearts</Button>
-          <Button>Spades</Button>
-          <Button>No Trump</Button>
+          {SUITS.map((s) => (
+            <Button
+              key={s}
+              onClick={() => setSelectedSuit(s)}
+              className={selectedSuit === s ? "bg-blue-500 text-white" : ""}
+            >
+              {s.replace(/\b\w/g, (c) => c.toUpperCase())}
+            </Button>
+          ))}
         </div>
         <div className="flex justify-between">
-          <Button>Pass</Button>
-          <Button>Double</Button>
+          <Button onClick={handlePass}>Pass</Button>
+          <Button
+            onClick={() => {
+              // Double is not implemented fully yet; placeholder
+              console.log("Double clicked");
+            }}
+          >
+            Double
+          </Button>
         </div>
 
         <p className="mt-4 text-xs opacity-60">
-          <strong>Selection:-</strong>
+          <strong>Selection:</strong> {selectedLevel ? selectedLevel : "-"}{" "}
+          {selectedSuit ? selectedSuit : "-"}
+        </p>
+
+        <p className="mt-1 text-xs opacity-60">
+          <strong>Current turn:</strong> {currentPlayerName}
+        </p>
+
+        <p className="mt-1 text-xs opacity-60">
+          <strong>Highest bid:</strong>{" "}
+          {highestBid ? `${highestBid.level} ${highestBid.suit}` : "-"}
+        </p>
+
+        <p className="mt-1 text-xs opacity-60">
+          <strong>History:</strong>{" "}
+          {bids && bids.length > 0
+            ? bids
+                .map((b) =>
+                  b.pass
+                    ? `P(${players[b.player]?.name})`
+                    : `${b.level}${b.suit ? " " + b.suit : ""}`
+                )
+                .join(", ")
+            : "-"}
         </p>
       </div>
-      <div className="grid grid-cols-3 gap-4 place-items-center"></div>
+      <div className="grid grid-cols-3 gap-4 place-items-center">
+        <Button onClick={handlePlaceBid} className="col-span-3">
+          Bid
+        </Button>
+        <Button onClick={onClose} className="col-span-3">
+          Close
+        </Button>
+      </div>
     </div>
   );
 };
