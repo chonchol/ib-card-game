@@ -36,9 +36,9 @@ const Bidding = ({
 
   return (
     <div
-      className={`bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 flex flex-col items-center h-44 text-slate-600 dark:text-slate-300 ${addPosition}`}
+      className={`bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 flex flex-col items-center w-full h-auto text-slate-600 dark:text-slate-300 ${addPosition}`}
     >
-      <div className="w-full mb-2 text-xs opacity-60">
+      <div className="mb-2 text-xs opacity-60">
         <div className="flex justify-between">
           {[1, 2, 3, 4, 5, 6, 7].map((n) => (
             <Button
@@ -71,6 +71,14 @@ const Bidding = ({
           >
             Double
           </Button>
+          <div className="flex gap-4 place-items-center">
+            <Button onClick={handlePlaceBid} className="col-span-3">
+              Bid
+            </Button>
+            <Button onClick={onClose} className="col-span-3">
+              Close
+            </Button>
+          </div>
         </div>
 
         <p className="mt-4 text-xs opacity-60">
@@ -99,14 +107,6 @@ const Bidding = ({
                 .join(", ")
             : "-"}
         </p>
-      </div>
-      <div className="grid grid-cols-3 gap-4 place-items-center">
-        <Button onClick={handlePlaceBid} className="col-span-3">
-          Bid
-        </Button>
-        <Button onClick={onClose} className="col-span-3">
-          Close
-        </Button>
       </div>
     </div>
   );

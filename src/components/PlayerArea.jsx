@@ -1,3 +1,4 @@
+import sortCards from "../utils/sortCards";
 import SingleCard from "./SingleCard";
 
 const PlayerArea = ({
@@ -74,6 +75,9 @@ const PlayerArea = ({
   const hand = hands[playerIdx] || [];
   const isActive = playerIdx === currentPlayer;
   //   const isYou = playerIdx === 0;
+  sortCards(hand);
+  //   console.log("hand", sortCards(hand));
+
   return (
     <div
       className={`flex flex-col items-center ${

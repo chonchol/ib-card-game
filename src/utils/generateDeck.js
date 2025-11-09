@@ -1,4 +1,4 @@
-const SUITS = [
+export const SUITS = [
     { symbol: "♠", name: "spades" },
     { symbol: "♥", name: "hearts" },
     { symbol: "♦", name: "diamonds" },

@@ -1,16 +1,15 @@
 import { AnimatePresence } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import Bidding from "../components/Bidding";
 import PlayerArea from "../components/PlayerArea";
 import Result from "../components/Result";
 import SingleCard from "../components/SingleCard";
 import dealCard from "../utils/dealCard";
 import generateDeck, { RANKS } from "../utils/generateDeck";
 import shuffleCard from "../utils/shuffleCard";
+import Bidding from "./Bidding";
+import BridgeTableHeader from "./BridgeTableHeader";
 
 const BridgeTable = ({ table }) => {
-  const [darkMode, setDarkMode] = useState(false);
   const [history, setHistory] = useState([]);
   const [trick, setTrick] = useState([]);
   const [deck, setDeck] = useState(() => shuffleCard(generateDeck()));
@@ -50,11 +49,6 @@ const BridgeTable = ({ table }) => {
     ],
     []
   );
-
-  useEffect(() => {
-    if (darkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [darkMode]);
 
   useEffect(() => {
     if (trick.length === 4) {
@@ -198,40 +192,14 @@ const BridgeTable = ({ table }) => {
   console.log({ hands, trick, history });
 
   return (
-    // <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 transition-colors">
     <div className="max-w-7xl w-full">
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-          Table: {table}
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600"
-            onClick={() => handleResultCard()}
-          >
-            Result
-          </button>
-          <button
-            className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600"
-            onClick={() => startBidding()}
-          >
-            Bid
-          </button>
-          <button
-            onClick={reshuffle}
-            className="px-3 py-2 rounded-lg bg-emerald-500 text-white font-medium shadow hover:bg-emerald-600"
-          >
-            Reshuffle & Deal
-          </button>
-          <button
-            onClick={() => setDarkMode((d) => !d)}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white dark:bg-slate-700 border shadow"
-          >
-            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-            <span className="text-sm">{darkMode ? "Dark" : "Light"}</span>
-          </button>
-        </div>
-      </header>
+      <BridgeTableHeader
+        table={table}
+        handleResultCard={handleResultCard}
+        startBidding={startBidding}
+        reshuffle={reshuffle}
+      />
+
       <main className="bg-white/80 dark:bg-slate-800/70 rounded-2xl p-6 shadow-lg grid grid-rows-[auto,1fr,auto] gap-6">
         <div className="flex items-center justify-center">
           <PlayerArea
@@ -278,7 +246,7 @@ const BridgeTable = ({ table }) => {
                 Table
               </div>
               {showResultCard && <Result addPosition="absolute top-0" />}
-              {showBiddingCard && (
+              {/* {showBiddingCard && (
                 <Bidding
                   addPosition="absolute top-0"
                   biddingTurn={biddingTurn}
@@ -289,7 +257,7 @@ const BridgeTable = ({ table }) => {
                   onPass={() => passBid()}
                   onClose={() => closeBidding()}
                 />
-              )}
+              )} */}
 
               {contractLevel && trump && highestBid && (
                 <div className="mb-2 text-sm text-slate-700 dark:text-slate-200">
@@ -337,8 +305,20 @@ const BridgeTable = ({ table }) => {
           />
         </div>
       </main>
+
+      {showBiddingCard && (
+        <Bidding
+          //   addPosition="absolute top-0"
+          biddingTurn={biddingTurn}
+          players={players}
+          highestBid={highestBid}
+          bids={bids}
+          onBid={(level, suit) => placeBid(level, suit)}
+          onPass={() => passBid()}
+          onClose={() => closeBidding()}
+        />
+      )}
     </div>
-    // </div>
   );
 };
 
