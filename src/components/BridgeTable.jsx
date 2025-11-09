@@ -213,7 +213,8 @@ const BridgeTable = ({ table }) => {
       // bidding won by highestBid.player
       setTrump(highestBid.suit);
       setContractLevel(highestBid.level);
-      setCurrentPlayer(highestBid.player); // winner starts first trick
+      // Set the first player to be the one to the left of the bid winner
+      setCurrentPlayer((highestBid.player + 1) % 4); // Next player after bid winner starts first trick
       // close bidding UI
       closeBidding();
       return;
@@ -271,6 +272,14 @@ const BridgeTable = ({ table }) => {
                   {players[currentPlayer].name}
                 </span>
               </div>
+              {contractLevel && trump && highestBid && (
+                <div className="text-sm text-slate-700 dark:text-slate-200">
+                  <strong>Contract:</strong> {contractLevel}{" "}
+                  {trump.replace(/\b\w/g, (c) => c.toUpperCase())} —{" "}
+                  <strong>Declarer:</strong>{" "}
+                  {players[highestBid.player]?.name ?? "-"}
+                </div>
+              )}
               <div className="text-sm">
                 Tricks won:{" "}
                 <span className="font-semibold">{history.length}</span>
@@ -293,15 +302,6 @@ const BridgeTable = ({ table }) => {
                   onClose={() => closeBidding()}
                 />
               )} */}
-
-              {contractLevel && trump && highestBid && (
-                <div className="mb-2 text-sm text-slate-700 dark:text-slate-200">
-                  <strong>Contract:</strong> {contractLevel}{" "}
-                  {trump.replace(/\b\w/g, (c) => c.toUpperCase())} —{" "}
-                  <strong>Declarer:</strong>{" "}
-                  {players[highestBid.player]?.name ?? "-"}
-                </div>
-              )}
 
               <div className="grid grid-cols-3 gap-4 place-items-center">
                 <AnimatePresence>
