@@ -15,6 +15,8 @@ const BridgeTable = ({ table }) => {
   const [deck, setDeck] = useState(() => shuffleCard(generateDeck()));
   const [hands, setHands] = useState(() => dealCard(deck));
   const [currentPlayer, setCurrentPlayer] = useState(0);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [isPlayPhase, setIsPlayPhase] = useState(false); // false means bidding phase
   const [showResultCard, setShowResultCard] = useState(false);
   const [showBiddingCard, setShowBiddingCard] = useState(false);
   // Bidding state
@@ -51,48 +53,76 @@ const BridgeTable = ({ table }) => {
   );
 
   useEffect(() => {
-    if (trick.length === 4) {
-      const leadSuit = trick[0].card.suit;
-      const rankIndex = (r) => RANKS.indexOf(r);
+    if (!isPlayPhase || trick.length !== 4) return;
 
-      // If trump is set and any trump card was played, the highest trump wins
-      let winner;
-      if (trump) {
-        const trumpsPlayed = trick
-          .map((t, i) => ({ ...t, idx: i }))
-          .filter((t) => t.card.suit === trump);
-        if (trumpsPlayed.length > 0) {
-          let best = {
-            idx: trumpsPlayed[0].idx,
-            rank: rankIndex(trumpsPlayed[0].card.rank),
-          };
-          trumpsPlayed.forEach((t) => {
-            const ri = rankIndex(t.card.rank);
-            if (ri < best.rank) best = { idx: t.idx, rank: ri };
-          });
-          winner = trick[best.idx].player;
-        }
-      }
+    const leadSuit = trick[0].card.suit;
+    const rankIndex = (r) => RANKS.indexOf(r);
 
-      // Otherwise highest of the lead suit wins
-      if (!winner) {
-        let best = { idx: 0, rank: -1 };
-        trick.forEach((t, i) => {
-          if (t.card.suit === leadSuit) {
-            const ri = rankIndex(t.card.rank);
-            if (ri < best.rank || best.rank === -1) best = { idx: i, rank: ri };
-          }
+    // If trump is set and any trump card was played, the highest trump wins
+    let winner;
+    if (trump) {
+      const trumpsPlayed = trick
+        .map((t, i) => ({ ...t, idx: i }))
+        .filter((t) => t.card.suit === trump);
+      if (trumpsPlayed.length > 0) {
+        let best = {
+          idx: trumpsPlayed[0].idx,
+          rank: rankIndex(trumpsPlayed[0].card.rank),
+        };
+        trumpsPlayed.forEach((t) => {
+          const ri = rankIndex(t.card.rank);
+          if (ri < best.rank) best = { idx: t.idx, rank: ri };
         });
         winner = trick[best.idx].player;
       }
-
-      setTimeout(() => {
-        setHistory((h) => [...h, { winner, trick: trick.slice() }]);
-        setTrick([]);
-        setCurrentPlayer(winner);
-      }, 800);
     }
-  }, [trick, trump]);
+
+    // Otherwise highest of the lead suit wins
+    if (!winner) {
+      let best = { idx: 0, rank: -1 };
+      trick.forEach((t, i) => {
+        if (t.card.suit === leadSuit) {
+          const ri = rankIndex(t.card.rank);
+          if (ri < best.rank || best.rank === -1) best = { idx: i, rank: ri };
+        }
+      });
+      winner = trick[best.idx].player;
+    }
+
+    setTimeout(() => {
+      setHistory((h) => [...h, { winner, trick: trick.slice() }]);
+      setTrick([]);
+      setCurrentPlayer(winner);
+
+      // Check if round is complete (13 tricks played)
+      if (history.length === 12) {
+        // We're adding the 13th trick
+        setTimeout(() => {
+          if (roundNumber < 9) {
+            // Start new round
+            setRoundNumber((r) => r + 1);
+            const newDeck = shuffleCard(generateDeck());
+            setDeck(newDeck);
+            setHands(dealCard(newDeck));
+            setHistory([]);
+            setTrick([]);
+            setCurrentPlayer(roundNumber % 4); // Rotate dealer
+            setIsPlayPhase(false); // Go back to bidding phase
+            setShowBiddingCard(true); // Show bidding UI
+            setBids([]);
+            setHighestBid(null);
+            setPassesInRow(0);
+            setBiddingTurn(roundNumber % 4);
+            setTrump(null);
+            setContractLevel(null);
+          } else {
+            // Game complete after 9 rounds
+            setShowResultCard(true);
+          }
+        }, 1500);
+      }
+    }, 800);
+  }, [trick, trump, history.length, roundNumber, isPlayPhase]);
 
   function reshuffle() {
     const d = shuffleCard(generateDeck());
@@ -121,6 +151,7 @@ const BridgeTable = ({ table }) => {
   function closeBidding() {
     setShowBiddingCard(false);
     setBiddingTurn(null);
+    setIsPlayPhase(true); // Now cards can be played
   }
 
   function advanceBiddingTurn() {
@@ -129,6 +160,7 @@ const BridgeTable = ({ table }) => {
 
   function placeBid(level, suit) {
     if (biddingTurn === null) return;
+
     const suitKey = suit.toLowerCase();
     const bid = {
       player: biddingTurn,
@@ -137,26 +169,27 @@ const BridgeTable = ({ table }) => {
       suitRank: SUIT_RANK[suitKey],
     };
 
-    // Only accept bid if it's higher than current highest
-    let accepted = false;
-    if (!highestBid) accepted = true;
-    else if (level > highestBid.level) accepted = true;
-    else if (level === highestBid.level && bid.suitRank > highestBid.suitRank)
-      accepted = true;
+    // Validate bid against highest bid
+    if (highestBid) {
+      // If level is less than highest bid's level, reject
+      if (level < highestBid.level) {
+        console.log("Bid level must be higher than current highest bid");
+        return;
+      }
 
-    if (!accepted) {
-      // ignore bids that are not higher
-      console.log("Bid not high enough", bid, highestBid);
-      // still advance turn and record as an invalid attempt? We'll just ignore recording.
-      advanceBiddingTurn();
-      return;
+      // If level is equal to highest bid's level, suit rank must be higher
+      if (level === highestBid.level && bid.suitRank <= highestBid.suitRank) {
+        console.log("When bidding at same level, suit rank must be higher");
+        return;
+      }
     }
 
+    // Valid bid - record it
     setBids((prev) => [...prev, bid]);
     setHighestBid(bid);
     setPassesInRow(0);
 
-    // advance to next player
+    // Advance to next player
     advanceBiddingTurn();
   }
 
@@ -212,6 +245,7 @@ const BridgeTable = ({ table }) => {
             setTrick={setTrick}
             setCurrentPlayer={setCurrentPlayer}
             trick={trick}
+            isPlayPhase={isPlayPhase}
           />
         </div>
         <div className="flex items-center justify-between gap-6">
@@ -226,6 +260,7 @@ const BridgeTable = ({ table }) => {
               setTrick={setTrick}
               setCurrentPlayer={setCurrentPlayer}
               trick={trick}
+              isPlayPhase={isPlayPhase}
             />
           </div>
           <div className="flex flex-col items-center gap-4 w-2/4">
@@ -288,6 +323,7 @@ const BridgeTable = ({ table }) => {
               setTrick={setTrick}
               setCurrentPlayer={setCurrentPlayer}
               trick={trick}
+              isPlayPhase={isPlayPhase}
             />
           </div>
         </div>
@@ -302,6 +338,7 @@ const BridgeTable = ({ table }) => {
             setTrick={setTrick}
             setCurrentPlayer={setCurrentPlayer}
             trick={trick}
+            isPlayPhase={isPlayPhase}
           />
         </div>
       </main>

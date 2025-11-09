@@ -10,9 +10,13 @@ const PlayerArea = ({
   setHands,
   setTrick,
   setCurrentPlayer,
-  trick, // Add trick to props
+  trick,
+  isPlayPhase, // Add to control when cards can be played
 }) => {
   function playCard(playerIndex, cardIndex, e) {
+    // Must be in play phase (after bidding)
+    if (!isPlayPhase) return;
+
     // Must be a real user click
     if (!e?.nativeEvent?.isTrusted) return;
 
@@ -110,7 +114,7 @@ const PlayerArea = ({
           // If it's not the first play, and there's a leading suit, and
           // the player has cards of that suit, they may only play cards
           // of that suit. Otherwise any card is allowed when it's their turn.
-          let isPlayable = isMyTurn;
+          let isPlayable = isMyTurn && isPlayPhase;
           if (isPlayable && !isFirstPlayInTrick && trick[0]?.card) {
             const leadingSuit = trick[0].card.suit;
             if (leadingSuit) {
