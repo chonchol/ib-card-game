@@ -1,4 +1,4 @@
-const Result = ({ addPosition }) => {
+const Result = ({ addPosition, roundResults }) => {
   return (
     <div
       className={`bg-green-800/10 dark:bg-green-900/30 rounded-xl p-6 flex flex-col items-center h-44 text-slate-600 dark:text-slate-300 ${addPosition}`}
@@ -14,31 +14,25 @@ const Result = ({ addPosition }) => {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>West - 3NT</td>
-              <td>0</td>
-              <td>120</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>East - 2 Spades</td>
-              <td>30</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td>South - 4 Hearts</td>
-              <td>150</td>
-              <td>0</td>
-            </tr>
+            {roundResults?.map((result) => (
+              <tr key={result.roundNumber}>
+                <td>{result.roundNumber}</td>
+                <td>
+                  {result.declarer} - {result.contract}
+                </td>
+                <td>{result.tricksWon}</td>
+                <td>{result.score}</td>
+              </tr>
+            ))}
           </tbody>
           <tfoot className="font-bold border-t-2 border-emerald-400 dark:border-emerald-800 mt-2">
             <tr>
               <td></td>
               <td>Total</td>
-              <td>30</td>
-              <td>120</td>
+              <td>
+                {roundResults?.reduce((sum, r) => sum + r.tricksWon, 0) || 0}
+              </td>
+              <td>{roundResults?.reduce((sum, r) => sum + r.score, 0) || 0}</td>
             </tr>
           </tfoot>
         </table>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import PlayerArea from "../components/PlayerArea";
 import Result from "../components/Result";
 import SingleCard from "../components/SingleCard";
+import { calculateScore } from "../utils/calculateScore";
 import dealCard from "../utils/dealCard";
 import generateDeck, { RANKS } from "../utils/generateDeck";
 import shuffleCard from "../utils/shuffleCard";
@@ -19,6 +20,7 @@ const BridgeTable = ({ table }) => {
   const [isPlayPhase, setIsPlayPhase] = useState(false); // false means bidding phase
   const [showResultCard, setShowResultCard] = useState(false);
   const [showBiddingCard, setShowBiddingCard] = useState(false);
+  const [roundResults, setRoundResults] = useState([]); // Store results of each round
   // Bidding state
   const [bids, setBids] = useState([]); // history of bids (including passes)
   const [biddingTurn, setBiddingTurn] = useState(null);
@@ -33,13 +35,6 @@ const BridgeTable = ({ table }) => {
     hearts: 3,
     spades: 4,
     "no trump": 5,
-  };
-  const SUIT_POINTS = {
-    clubs: 6,
-    diamonds: 7,
-    hearts: 8,
-    spades: 9,
-    "no trump": 10,
   };
 
   const players = useMemo(
@@ -97,6 +92,41 @@ const BridgeTable = ({ table }) => {
       // Check if round is complete (13 tricks played)
       if (history.length === 12) {
         // We're adding the 13th trick
+        const tricksWonByDeclarer =
+          history.filter(
+            (h) =>
+              h.winner === highestBid.player ||
+              h.winner === (highestBid.player + 2) % 4
+          ).length +
+          (winner === highestBid.player ||
+          winner === (highestBid.player + 2) % 4
+            ? 1
+            : 0);
+
+        // Calculate score
+        const tricksRequired = 6 + contractLevel;
+        // eslint-disable-next-line no-unused-vars
+        const overtricks = Math.max(0, tricksWonByDeclarer - tricksRequired);
+        // eslint-disable-next-line no-unused-vars
+        const undertricks = Math.max(0, tricksRequired - tricksWonByDeclarer);
+
+        const score = {
+          roundNumber,
+          declarer: players[highestBid.player].name,
+          contract: `${contractLevel} ${trump.replace(/\b\w/g, (c) =>
+            c.toUpperCase()
+          )}`,
+          tricksWon: tricksWonByDeclarer,
+          score: calculateScore(
+            tricksWonByDeclarer,
+            tricksRequired,
+            contractLevel,
+            trump
+          ),
+        };
+
+        setRoundResults((prev) => [...prev, score]);
+
         setTimeout(() => {
           if (roundNumber < 9) {
             // Start new round
@@ -122,6 +152,7 @@ const BridgeTable = ({ table }) => {
         }, 1500);
       }
     }, 800);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trick, trump, history.length, roundNumber, isPlayPhase]);
 
   function reshuffle() {
@@ -289,19 +320,12 @@ const BridgeTable = ({ table }) => {
               <div className="mb-2 text-xs opacity-60 text-slate-600 dark:text-slate-300">
                 Table
               </div>
-              {showResultCard && <Result addPosition="absolute top-0" />}
-              {/* {showBiddingCard && (
-                <Bidding
+              {showResultCard && (
+                <Result
                   addPosition="absolute top-0"
-                  biddingTurn={biddingTurn}
-                  players={players}
-                  highestBid={highestBid}
-                  bids={bids}
-                  onBid={(level, suit) => placeBid(level, suit)}
-                  onPass={() => passBid()}
-                  onClose={() => closeBidding()}
+                  roundResults={roundResults}
                 />
-              )} */}
+              )}
 
               <div className="grid grid-cols-3 gap-4 place-items-center">
                 <AnimatePresence>
